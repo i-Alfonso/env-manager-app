@@ -1,0 +1,1 @@
+ /home/moneda/Projects/env-manager-app/.dart_tool/flutter_build/1cabcfaac4a6c9fc6dd62e5c454af4c9/native_assets.yaml: 
