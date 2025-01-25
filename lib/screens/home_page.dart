@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:env_manager_app/services/runner_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
 import '../widgets/form_switch.dart';
 import '../services/beer_service.dart';
+import '../services/instances_status.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -18,16 +22,32 @@ class _HomeState extends State<Home> {
   bool beerVisible = false;
   Map<String, dynamic>? filteredBeer;
   var phraseIndex = 0;
+  Map<String, dynamic>? instanceInformation;
 
   final BeerService _beerService = BeerService();
+  final InstancesStatusService _statusService = InstancesStatusService();
+  final RunnerManagerService _runnerManagerService = RunnerManagerService();
 
   int _counter = 0;
-  String? _loggedUser = "";
+  String? _loggedUser;
+
+
+  bool _runnerActive = false;
+  String _runnerStatusMessage = "Fetching runner status...";
 
   @override
   void initState() {
     super.initState();
     _loginCounter();
+    _instanceStatus();
+  }
+
+  Future<void> _instanceStatus() async {
+    final status = await _statusService.fetchStatus();
+    print(status);
+    setState(() {
+      _runnerStatusMessage = 'Name: runner-server-prod | Status: ${status['instances'].firstWhere((instance) => instance["name"] == "runner-server-prod")['state']}';
+    });
   }
 
   Future<void> _loginCounter() async {
@@ -128,7 +148,26 @@ class _HomeState extends State<Home> {
           ),
           const FormSwitch(label: 'Git Server'),
           const FormSwitch(label: 'CI/CD'),
-          const FormSwitch(label: 'Runners'),
+          SwitchListTile(
+            value: _runnerActive,
+            title: const Text('Runner'),
+            onChanged: (bool enabled) async {
+              setState(() {
+                _runnerActive = enabled;
+              });
+              if(await _runnerManagerService.setRunnerState(enabled ? "turn-on" : "turn-off")) {
+                 _instanceStatus();
+              } else {
+                _runnerStatusMessage = "Error trying to ${enabled ? "turn-on" : "turn-off"} the runner";
+                _runnerActive = !enabled;
+              }
+            },
+            activeColor: Colors.green,
+          ),
+          Container(
+            padding: const EdgeInsets.only(left:16.0, right: 16),
+            child: Text(_runnerStatusMessage, style: const TextStyle(fontSize: 14))
+          ),
           const FormSwitch(label: 'Non-prod'),
           FormSwitch(
               label: 'Beer recommendation',

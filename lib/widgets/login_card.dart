@@ -63,7 +63,7 @@ class _LoginCardState extends State<LoginCard> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
-                  if (_loginService.isValidUser(userNameController.text, passController.text)) {
+                  if (await _loginService.isValidUser(userNameController.text, passController.text)) {
                     setState(() {
                       loginError = false;
                     });

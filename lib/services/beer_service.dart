@@ -12,7 +12,7 @@ class BeerService {
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       List<dynamic> data = jsonDecode(response.body);
-      // Filter the element with id value equal to 3
+      // Filter the element with id value equal to random beer id
       var filteredElement = data.where((element) => element['id'] == beerId).toList();
       // print(filteredElement);
       return filteredElement.first as Map<String, dynamic>;
