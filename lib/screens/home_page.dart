@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:env_manager_app/services/runner_manager.dart';
+import 'package:env_manager_app/services/instance_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
@@ -26,14 +26,17 @@ class _HomeState extends State<Home> {
 
   final BeerService _beerService = BeerService();
   final InstancesStatusService _statusService = InstancesStatusService();
-  final RunnerManagerService _runnerManagerService = RunnerManagerService();
+  final InstanceManagerService _instanceManagerService = InstanceManagerService();
 
   int _counter = 0;
   String? _loggedUser;
 
+  bool _giteaActive = false;
+  String _giteaStatusMessage = "Fetching gitea status...";
 
   bool _runnerActive = false;
   String _runnerStatusMessage = "Fetching runner status...";
+  List<dynamic> _instancesData = [];
 
   @override
   void initState() {
@@ -44,9 +47,15 @@ class _HomeState extends State<Home> {
 
   Future<void> _instanceStatus() async {
     final status = await _statusService.fetchStatus();
-    print(status);
+    final String runnerInitialStatus = status['instances'].firstWhere((instance) => instance["name"] == "runner-server-prod")['state'];
+    final String giteaInitialStatus = status['instances'].firstWhere((instance) => instance["name"] == "gitea-server-prod")['state'];
     setState(() {
-      _runnerStatusMessage = 'Name: runner-server-prod | Status: ${status['instances'].firstWhere((instance) => instance["name"] == "runner-server-prod")['state']}';
+      _instancesData = status['instances'];
+      _runnerStatusMessage = 'Name: runner-server-prod | Status: $runnerInitialStatus';
+      _runnerActive = runnerInitialStatus == 'running' ? true : false;
+
+      _giteaActive = giteaInitialStatus == 'running' ? true : false;
+      _giteaStatusMessage = 'Name: gitea-server-prod | Status: $giteaInitialStatus';
     });
   }
 
@@ -146,7 +155,39 @@ class _HomeState extends State<Home> {
               ],
             ),
           ),
-          const FormSwitch(label: 'Git Server'),
+          SwitchListTile(
+            value: _giteaActive,
+            title: const Text('Git Server'),
+            onChanged: (bool enabled) async {
+              setState(() {
+                _giteaActive = enabled;
+              });
+              if(await _instanceManagerService.actionsHandler(
+                  'https://sm.andor.cloud/api/service_manager',
+                  'gitea',
+                  12,
+                  5,
+                  enabled
+                      ? ['create-voldata', 'create-volroot', 'atach-volroot', 'atach-voldata', 'turn-on']
+                      : ['turn-off', 'snapshot-data', 'snapshot-root', 'detach-data', 'detach-root'],
+                      (msg) {
+                    setState(() {
+                      _giteaStatusMessage = msg; // Updates the UI when the status changes
+                    });
+                  },
+                  _instancesData
+              )) {
+                setState((){
+                  _giteaStatusMessage = 'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stoped"}';
+                });
+              }
+            },
+            activeColor: Colors.green,
+          ),
+          Container(
+              padding: const EdgeInsets.only(left:16.0, right: 16),
+              child: Text(_giteaStatusMessage, style: const TextStyle(fontSize: 14))
+          ),
           const FormSwitch(label: 'CI/CD'),
           SwitchListTile(
             value: _runnerActive,
@@ -155,11 +196,25 @@ class _HomeState extends State<Home> {
               setState(() {
                 _runnerActive = enabled;
               });
-              if(await _runnerManagerService.setRunnerState(enabled ? "turn-on" : "turn-off")) {
-                 _instanceStatus();
-              } else {
-                _runnerStatusMessage = "Error trying to ${enabled ? "turn-on" : "turn-off"} the runner";
-                _runnerActive = !enabled;
+              if(await _instanceManagerService.actionsHandler(
+                'https://sm.andor.cloud/api/service_manager',
+                'runner',
+                12,
+                5,
+                enabled
+                  ? ['create-voldata', 'create-volroot', 'atach-volroot', 'atach-voldata', 'turn-on']
+                  : ['turn-off', 'snapshot-data', 'snapshot-root', 'detach-data', 'detach-root'],
+                      (msg) {
+                    setState(() {
+                      _runnerStatusMessage = msg; // Updates the UI when the status changes
+                    });
+                  },
+                _instancesData
+              )) {
+                setState((){
+                  _runnerStatusMessage = 'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stoped"}';
+
+                });
               }
             },
             activeColor: Colors.green,
