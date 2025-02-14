@@ -36,7 +36,91 @@ class _HomeState extends State<Home> {
 
   bool _runnerActive = false;
   String _runnerStatusMessage = "Fetching runner status...";
-  List<dynamic> _instancesData = [];
+
+  final List<Map<String, dynamic>> _turnOnActions = [
+    {
+      "action": "create-voldata",
+      "attempts": 3,
+      "timeout": 10,
+    },
+    {
+      "action": "create-volroot",
+      "attempts": 3,
+      "timeout": 10,
+    },
+    {
+      "action": "atach-volroot",
+      "attempts": 3,
+      "timeout": 10,
+    },
+    {
+      "action": "atach-voldata",
+      "instance": "runner",
+      "attempts": 3,
+      "timeout": 10,
+    },
+    {
+      "action": "turn-on",
+      "attempts": 3,
+      "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "running",
+        "attempts": 10,
+        "timeout": 15,
+      },
+    },
+  ];
+
+  final List<Map<String, dynamic>> _turnOffActions = [
+    {
+      "action": "turn-off",
+      "attempts": 3,
+      "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "stopped",
+        "attempts": 10,
+        "timeout": 15,
+      },
+    },
+    {
+      "action": "snapshot-data",
+      "attempts": 3,
+      "timeout": 10,
+    },
+    {
+      "action": "snapshot-root",
+      "attempts": 3,
+      "timeout": 10,
+    },
+    {
+      "action": "detach-data",
+      "attempts": 3,
+      "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "available",
+        "attempts": 5,
+        "timeout": 10,
+      },
+    },
+    {
+      "action": "detach-root",
+      "attempts": 3,
+      "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "available",
+        "attempts": 5,
+        "timeout": 10,
+      },
+    },
+  ];
+
+
+
+
 
   @override
   void initState() {
@@ -50,7 +134,6 @@ class _HomeState extends State<Home> {
     final String runnerInitialStatus = status['instances'].firstWhere((instance) => instance["name"] == "runner-server-prod")['state'];
     final String giteaInitialStatus = status['instances'].firstWhere((instance) => instance["name"] == "gitea-server-prod")['state'];
     setState(() {
-      _instancesData = status['instances'];
       _runnerStatusMessage = 'Name: runner-server-prod | Status: $runnerInitialStatus';
       _runnerActive = runnerInitialStatus == 'running' ? true : false;
 
@@ -165,20 +248,17 @@ class _HomeState extends State<Home> {
               if(await _instanceManagerService.actionsHandler(
                   'https://sm.andor.cloud/api/service_manager',
                   'gitea',
-                  12,
-                  5,
                   enabled
-                      ? ['create-voldata', 'create-volroot', 'atach-volroot', 'atach-voldata', 'turn-on']
-                      : ['turn-off', 'snapshot-data', 'snapshot-root', 'detach-data', 'detach-root'],
+                      ? _turnOnActions
+                      : _turnOffActions,
                       (msg) {
                     setState(() {
                       _giteaStatusMessage = msg; // Updates the UI when the status changes
                     });
                   },
-                  _instancesData
               )) {
                 setState((){
-                  _giteaStatusMessage = 'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stoped"}';
+                  _giteaStatusMessage = 'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stopped"}';
                 });
               }
             },
@@ -199,21 +279,17 @@ class _HomeState extends State<Home> {
               if(await _instanceManagerService.actionsHandler(
                 'https://sm.andor.cloud/api/service_manager',
                 'runner',
-                12,
-                5,
                 enabled
-                  ? ['create-voldata', 'create-volroot', 'atach-volroot', 'atach-voldata', 'turn-on']
-                  : ['turn-off', 'snapshot-data', 'snapshot-root', 'detach-data', 'detach-root'],
-                      (msg) {
+                  ? _turnOnActions
+                  : _turnOffActions,
+                  (msg) {
                     setState(() {
                       _runnerStatusMessage = msg; // Updates the UI when the status changes
                     });
                   },
-                _instancesData
               )) {
                 setState((){
-                  _runnerStatusMessage = 'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stoped"}';
-
+                  _runnerStatusMessage = 'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stopped"}';
                 });
               }
             },
