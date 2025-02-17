@@ -1,0 +1,2 @@
+/home/moneda/Projects/env-manager-app/android/app/.cxx/RelWithDebInfo/3z142549/armeabi-v7a/CMakeFiles/edit_cache.dir
+/home/moneda/Projects/env-manager-app/android/app/.cxx/RelWithDebInfo/3z142549/armeabi-v7a/CMakeFiles/rebuild_cache.dir

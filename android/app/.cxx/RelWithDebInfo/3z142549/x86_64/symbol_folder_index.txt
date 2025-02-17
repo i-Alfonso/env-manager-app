@@ -1,0 +1,1 @@
+/home/moneda/Projects/env-manager-app/build/app/intermediates/cxx/RelWithDebInfo/3z142549/obj/x86_64
