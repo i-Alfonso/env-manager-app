@@ -13,13 +13,13 @@ class InstanceManagerService {
     List<dynamic> instances = status['instances'];
     Map<String, dynamic> instance = instances.firstWhere((instance) => instance["name"].contains(instanceName));
 
-    print("instance:");
-    print(instance);
+    // print("instance:");
+    // print(instance);
 
     final instanceId = instance['id'];
-    print("instanceId:");
-    print(instanceId);
-    print("------------------------------------------");
+    // print("instanceId:");
+    // print(instanceId);
+    // print("------------------------------------------");
 
 
     // If instance is in the desire state the abort actions and return true.
@@ -33,9 +33,9 @@ class InstanceManagerService {
 
     List<dynamic> instanceVolumes = instance['volumes'];
 
-    print("Volumes:");
-    print(instanceVolumes);
-    print("------------------------------------------");
+    // print("Volumes:");
+    // print(instanceVolumes);
+    // print("------------------------------------------");
 
     // Creating a copy of the actions before modify the actions based on the instamce currrent status.
     List<Map<String, dynamic>> filteredActions = actions.map((action) => Map<String, dynamic>.from(action)).toList();
@@ -43,23 +43,23 @@ class InstanceManagerService {
     if (instance['state'] == 'stopped') {
       if (instanceVolumes.length == 2) {
         // The instance is down but the volumes are attached, only "turn-on" is required.
-        print("2 volumes attached only turn-on required ");
+        //print("2 volumes attached only turn-on required ");
         filteredActions = filteredActions.where((action) => action["action"] == "turn-on").toList();
       } else if (instanceVolumes.length == 1) {
         // Check if any volume contains 'root'
-        print("One volume attached, verifying if it is root or data");
-        print(" is root: ${instanceVolumes[0]["volume_name"].contains('root')}");
+        // print("One volume attached, verifying if it is root or data");
+        // print(" is root: ${instanceVolumes[0]["volume_name"].contains('root')}");
         final matchRoot = instanceVolumes[0]["volume_name"].contains('root');
-        print(matchRoot ? "is root volume" : "is data volume");
-        print("Removing ${matchRoot ? 'root' : 'data'} actions");
+        // print(matchRoot ? "is root volume" : "is data volume");
+        // print("Removing ${matchRoot ? 'root' : 'data'} actions");
         // Remove actions based on whether a "root" volume exists
         filteredActions.removeWhere((item) => item['action'].contains( matchRoot ? 'root' : 'data'));
       }
     }
 
-    print("actions");
-    print(filteredActions);
-    print("------------------------------------------");
+    // print("actions");
+    // print(filteredActions);
+    // print("------------------------------------------");
 
 
     for (int i = 0; i < filteredActions.length; i++) {
@@ -72,28 +72,28 @@ class InstanceManagerService {
         try {
           // Execute the POST request
           updateStatusMessage('Attempt to execute ${action["action"]} action');
-          print('Attempt to execute ${action["action"]} action');
+          //print('Attempt to execute ${action["action"]} action');
           final result = await actionResolver(url, instanceName, action['action'], null, null);
 
           if (result["succeed"]) {
-            print("succeed result:");
-            print(result);
+            // print("succeed result:");
+            // print(result);
 
 
             // If the executed action was create-vol, it is required to get the ID fo the created vol.
             if(action['action'].contains('create')) {
-              print('${action['action']} getting volume ID');
-              print(result);
+              // print('${action['action']} getting volume ID');
+              // print(result);
               volId = result["responseData"]["VolumeId"];
-              print("Volume ID");
-              print(volId);
+              // print("Volume ID");
+              // print(volId);
             }
 
 
             // verify if pass condition is required.
             if (action.containsKey("pass_condition")) {
 
-              print("Needs resolve pass_condition:");
+              // print("Needs resolve pass_condition:");
 
               for (int attempt = 1; attempt <= action["pass_condition"]['attempts']; attempt++) {
                 String elId = volId ?? instanceId;
@@ -102,37 +102,37 @@ class InstanceManagerService {
 
                 if(action['action'].contains('detach')) {
                   bool isRoot = action['action'] == "detach-root";
-                  print('Detach ${isRoot ? "root" : "data"} volume');
+                  //print('Detach ${isRoot ? "root" : "data"} volume');
                   Map volInstance = instanceVolumes.firstWhere(
                           (volume) => volume["volume_name"].contains( isRoot ? 'root' : 'data'));
-                  print("volume instance to detach:");
-                  print(volInstance);
+                  // print("volume instance to detach:");
+                  // print(volInstance);
 
                   elId = volInstance["volume_id"];
                 }
 
-                print("element ID");
-                print(elId);
+                //print("element ID");
+                //print(elId);
 
                 try {
                   final conditionResult = await actionResolver(url, instanceName, action["pass_condition"]['action'], elId, action["pass_condition"]['response_value']);
-                  print("conditionResult:");
-                  print(conditionResult);
-                  print("------------------------------------------");
+                  // print("conditionResult:");
+                  // print(conditionResult);
+                  // print("------------------------------------------");
                   if(conditionResult["succeed"]) {
-                    print("succeed conditionResult:");
-                    print(conditionResult);
-                    print("breaking on success conditionResult");
-                    print("------------------------------------------");
+                    // print("succeed conditionResult:");
+                    // print(conditionResult);
+                    // print("breaking on success conditionResult");
+                    // print("------------------------------------------");
                     success = true; // Mark success if the POST succeeds
                     if(i == filteredActions.length - 1) {
-                      print('last action ${action["action"]} executed');
+                      //print('last action ${action["action"]} executed');
                     }
                     break actionLoop;
                   }
                 } catch (e) {
                   updateStatusMessage('Error during attempt $attempt for action ${action["pass_condition"]["action"]}: $e');
-                  print('Error during attempt $attempt for action $action: $e');
+                  //print('Error during attempt $attempt for action $action: $e');
                 }
 
                 // Wait for the specified time before retrying, except after the last attempt
@@ -146,17 +146,17 @@ class InstanceManagerService {
 
             } else {
               success = true; // Mark success if the POST succeeds
-              print("breaking on success action ${action["action"]}");
+              //print("breaking on success action ${action["action"]}");
               if(i == filteredActions.length - 1) {
-                print('last action ${action["action"]} executed');
+                //print('last action ${action["action"]} executed');
               }
-              print("------------------------------------------");
+              //print("------------------------------------------");
               break actionLoop; // Exit retry loop if successful
             }
           }
         } catch (e) {
           updateStatusMessage('Error during attempt $attempt for action ${action["action"]}: $e');
-          print('Error during attempt $attempt for action ${action["action"]}: $e');
+          //print('Error during attempt $attempt for action ${action["action"]}: $e');
         }
 
         // Wait for the specified time before retrying, except after the last attempt
@@ -168,7 +168,7 @@ class InstanceManagerService {
       // Handle the case where all attempts fail
       if (!success) {
         updateStatusMessage('Failed to execute action ${action["action"]}, stopping execution.');
-        print('Failed to execute action ${action["action"]}, stopping execution.');
+        //print('Failed to execute action ${action["action"]}, stopping execution.');
         return false; // Stop execution if any action fails
       }
     }
