@@ -1,2 +1,0 @@
-/home/moneda/Projects/env-manager-app/android/app/.cxx/RelWithDebInfo/4q1z94j7/arm64-v8a/CMakeFiles/rebuild_cache.dir
-/home/moneda/Projects/env-manager-app/android/app/.cxx/RelWithDebInfo/4q1z94j7/arm64-v8a/CMakeFiles/edit_cache.dir
