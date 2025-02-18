@@ -18,3 +18,21 @@ samples, guidance on mobile development, and a full API reference.
 ## Instalation
 
 - Run `flutter pub get` to install dependencies and generate .dart_tool directory
+
+## Dependencies
+
+Gradle: 8.0
+Kotlin: 1.8.10
+Groovy: 3.0.13
+Ant: Apache Ant(TM) version 1.10.11 compiled on July 10 2021
+JVM: 17.0.11 (Red Hat, Inc. 17.0.11+9)
+
+## To generate .apk file
+
+Run the next commands:
+- flutter clean
+- flutter pub get
+- cd android/
+- ./gradlew clean
+- ..cd
+- flutter build apk --release
