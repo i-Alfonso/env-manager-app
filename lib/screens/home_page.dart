@@ -17,7 +17,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-
   bool phraseVisible = false;
   bool beerVisible = false;
   Map<String, dynamic>? filteredBeer;
@@ -26,7 +25,8 @@ class _HomeState extends State<Home> {
 
   final BeerService _beerService = BeerService();
   final InstancesStatusService _statusService = InstancesStatusService();
-  final InstanceManagerService _instanceManagerService = InstanceManagerService();
+  final InstanceManagerService _instanceManagerService =
+      InstanceManagerService();
 
   int _counter = 0;
   String? _loggedUser;
@@ -39,25 +39,57 @@ class _HomeState extends State<Home> {
 
   final List<Map<String, dynamic>> _turnOnActions = [
     {
-      "action": "create-voldata",
-      "attempts": 3,
-      "timeout": 10,
-    },
-    {
       "action": "create-volroot",
       "attempts": 3,
       "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "available",
+        // volume id from response from the create-volroot action
+        "resource_id": "VolumeId",
+        "attempts": 3,
+        "timeout": 20,
+      },
+    },
+    {
+      "action": "create-voldata",
+      "attempts": 3,
+      "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "available",
+        // volume id from response from the create-voldata action
+        "resource_id": "VolumeId",
+        "attempts": 3,
+        "timeout": 20,
+      },
     },
     {
       "action": "atach-volroot",
       "attempts": 3,
       "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "in-use",
+        // volume id from response from the atach-volroot action
+        "resource_id": "volume_id",
+        "attempts": 3,
+        "timeout": 20,
+      },
     },
     {
       "action": "atach-voldata",
       "instance": "runner",
       "attempts": 3,
       "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "in-use",
+        // volume id from response from the atach-voldata action
+        "resource_id": "volume_id",
+        "attempts": 3,
+        "timeout": 20,
+      },
     },
     {
       "action": "turn-on",
@@ -66,8 +98,10 @@ class _HomeState extends State<Home> {
       "pass_condition": {
         "action": "resource-status",
         "response_value": "running",
-        "attempts": 10,
-        "timeout": 15,
+        // instance id from response from turn-on action
+        "resource_id": "id",
+        "attempts": 3,
+        "timeout": 20,
       },
     },
   ];
@@ -80,7 +114,22 @@ class _HomeState extends State<Home> {
       "pass_condition": {
         "action": "resource-status",
         "response_value": "stopped",
+        // instance id from response from turn-off action
+        "resource_id": "id",
         "attempts": 10,
+        "timeout": 15,
+      },
+    },
+    {
+      "action": "snapshot-root",
+      "attempts": 3,
+      "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "completed",
+        // snapshot id (id) from response from snapshot-root action
+        "resource_id": "id",
+        "attempts": 5,
         "timeout": 15,
       },
     },
@@ -88,21 +137,13 @@ class _HomeState extends State<Home> {
       "action": "snapshot-data",
       "attempts": 3,
       "timeout": 10,
-    },
-    {
-      "action": "snapshot-root",
-      "attempts": 3,
-      "timeout": 10,
-    },
-    {
-      "action": "detach-data",
-      "attempts": 3,
-      "timeout": 10,
       "pass_condition": {
         "action": "resource-status",
-        "response_value": "available",
+        "response_value": "completed",
+        // snapshot id (id) from response from snapshot-data action
+        "resource_id": "id",
         "attempts": 5,
-        "timeout": 10,
+        "timeout": 15,
       },
     },
     {
@@ -112,15 +153,26 @@ class _HomeState extends State<Home> {
       "pass_condition": {
         "action": "resource-status",
         "response_value": "available",
+        // volume_id (id) from response from instances-status action
+        "resource_id": "volume_id",
+        "attempts": 5,
+        "timeout": 10,
+      },
+    },
+    {
+      "action": "detach-data",
+      "attempts": 3,
+      "timeout": 10,
+      "pass_condition": {
+        "action": "resource-status",
+        "response_value": "available",
+        // volume_id (id) from response from instances-status action
+        "resource_id": "volume_id",
         "attempts": 5,
         "timeout": 10,
       },
     },
   ];
-
-
-
-
 
   @override
   void initState() {
@@ -131,14 +183,18 @@ class _HomeState extends State<Home> {
 
   Future<void> _instanceStatus() async {
     final status = await _statusService.fetchStatus();
-    final String runnerInitialStatus = status['instances'].firstWhere((instance) => instance["name"] == "runner-server-prod")['state'];
-    final String giteaInitialStatus = status['instances'].firstWhere((instance) => instance["name"] == "gitea-server-prod")['state'];
+    final String runnerInitialStatus = status['instances'].firstWhere(
+        (instance) => instance["name"] == "runner-server-prod")['state'];
+    final String giteaInitialStatus = status['instances'].firstWhere(
+        (instance) => instance["name"] == "gitea-server-prod")['state'];
     setState(() {
-      _runnerStatusMessage = 'Name: runner-server-prod | Status: $runnerInitialStatus';
+      _runnerStatusMessage =
+          'Name: runner-server-prod | Status: $runnerInitialStatus';
       _runnerActive = runnerInitialStatus == 'running' ? true : false;
 
       _giteaActive = giteaInitialStatus == 'running' ? true : false;
-      _giteaStatusMessage = 'Name: gitea-server-prod | Status: $giteaInitialStatus';
+      _giteaStatusMessage =
+          'Name: gitea-server-prod | Status: $giteaInitialStatus';
     });
   }
 
@@ -147,7 +203,8 @@ class _HomeState extends State<Home> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _loggedUser = prefs.getString("user");
-      _counter = (prefs.getInt('counter_${_loggedUser?.toLowerCase()}') ?? 0) + 1;
+      _counter =
+          (prefs.getInt('counter_${_loggedUser?.toLowerCase()}') ?? 0) + 1;
       prefs.setInt('counter_${_loggedUser?.toLowerCase()}', _counter);
     });
   }
@@ -163,7 +220,7 @@ class _HomeState extends State<Home> {
   }
 
   _beerProvider(bool enabled) async {
-    if(enabled == true) {
+    if (enabled == true) {
       final beerData = await _beerService.fetchBeer();
       setState(() {
         filteredBeer = beerData;
@@ -200,7 +257,7 @@ class _HomeState extends State<Home> {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container (
+          Container(
             color: Colors.grey[200],
             padding: const EdgeInsets.all(16.0),
             child: RichText(
@@ -218,7 +275,7 @@ class _HomeState extends State<Home> {
               ),
             ),
           ),
-          Container (
+          Container(
             padding: const EdgeInsets.all(16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -232,8 +289,11 @@ class _HomeState extends State<Home> {
                 ),
                 OutlinedButton.icon(
                   onPressed: _resetCounter,
-                  icon: const Icon(Icons.refresh,size: 14),
-                  label: const Text('Reset', style: TextStyle(fontSize: 12),),
+                  icon: const Icon(Icons.refresh, size: 14),
+                  label: const Text(
+                    'Reset',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               ],
             ),
@@ -245,29 +305,29 @@ class _HomeState extends State<Home> {
               setState(() {
                 _giteaActive = enabled;
               });
-              if(await _instanceManagerService.actionsHandler(
-                  'https://sm.andor.cloud/api/service_manager',
-                  'gitea',
-                  enabled
-                      ? _turnOnActions
-                      : _turnOffActions,
-                      (msg) {
-                    setState(() {
-                      _giteaStatusMessage = msg; // Updates the UI when the status changes
-                    });
-                  },
+              if (await _instanceManagerService.actionsHandler(
+                'https://sm.andor.cloud/api/service_manager',
+                'gitea',
+                enabled ? _turnOnActions : _turnOffActions,
+                (msg) {
+                  setState(() {
+                    _giteaStatusMessage =
+                        msg; // Updates the UI when the status changes
+                  });
+                },
               )) {
-                setState((){
-                  _giteaStatusMessage = 'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stopped"}';
+                setState(() {
+                  _giteaStatusMessage =
+                      'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stopped"}';
                 });
               }
             },
             activeColor: Colors.green,
           ),
           Container(
-              padding: const EdgeInsets.only(left:16.0, right: 16),
-              child: Text(_giteaStatusMessage, style: const TextStyle(fontSize: 14))
-          ),
+              padding: const EdgeInsets.only(left: 16.0, right: 16),
+              child: Text(_giteaStatusMessage,
+                  style: const TextStyle(fontSize: 14))),
           const FormSwitch(label: 'CI/CD'),
           SwitchListTile(
             value: _runnerActive,
@@ -276,34 +336,31 @@ class _HomeState extends State<Home> {
               setState(() {
                 _runnerActive = enabled;
               });
-              if(await _instanceManagerService.actionsHandler(
+              if (await _instanceManagerService.actionsHandler(
                 'https://sm.andor.cloud/api/service_manager',
                 'runner',
-                enabled
-                  ? _turnOnActions
-                  : _turnOffActions,
-                  (msg) {
-                    setState(() {
-                      _runnerStatusMessage = msg; // Updates the UI when the status changes
-                    });
-                  },
+                enabled ? _turnOnActions : _turnOffActions,
+                (msg) {
+                  setState(() {
+                    _runnerStatusMessage =
+                        msg; // Updates the UI when the status changes
+                  });
+                },
               )) {
-                setState((){
-                  _runnerStatusMessage = 'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stopped"}';
+                setState(() {
+                  _runnerStatusMessage =
+                      'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stopped"}';
                 });
               }
             },
             activeColor: Colors.green,
           ),
           Container(
-            padding: const EdgeInsets.only(left:16.0, right: 16),
-            child: Text(_runnerStatusMessage, style: const TextStyle(fontSize: 14))
-          ),
+              padding: const EdgeInsets.only(left: 16.0, right: 16),
+              child: Text(_runnerStatusMessage,
+                  style: const TextStyle(fontSize: 14))),
           const FormSwitch(label: 'Non-prod'),
-          FormSwitch(
-              label: 'Beer recommendation',
-              onChange: _beerProvider
-          ),
+          FormSwitch(label: 'Beer recommendation', onChange: _beerProvider),
           Visibility(
             visible: beerVisible,
             child: Container(
@@ -312,22 +369,22 @@ class _HomeState extends State<Home> {
               child: filteredBeer == null
                   ? const CircularProgressIndicator()
                   : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Name: ${filteredBeer!['name']}\n'
-                     'Price: ${filteredBeer!['price']}\n',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  Image.network(filteredBeer!['image']),
-                ],
-              ),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Name: ${filteredBeer!['name']}\n'
+                          'Price: ${filteredBeer!['price']}\n',
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                        Image.network(filteredBeer!['image']),
+                      ],
+                    ),
             ),
           ),
           FormSwitch(
             label: "Chayanne's Wisdom Phrase",
-            onChange: (bool enabled){
-              if(enabled == true) {
+            onChange: (bool enabled) {
+              if (enabled == true) {
                 setState(() {
                   phraseIndex = Random().nextInt(12);
                 });
@@ -361,8 +418,7 @@ class _HomeState extends State<Home> {
                     },
                   ),
                 ],
-              )
-          ),
+              )),
         ],
       ),
     );
