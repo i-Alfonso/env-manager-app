@@ -9,6 +9,10 @@ import '../widgets/form_switch.dart';
 import '../services/beer_service.dart';
 import '../services/instances_status.dart';
 
+import '../utils/turn_on_actions.dart';
+import '../utils/turn_off_actions.dart';
+import '../utils/chayanne_phrases.dart';
+
 class Home extends StatefulWidget {
   const Home({super.key});
 
@@ -25,154 +29,18 @@ class _HomeState extends State<Home> {
 
   final BeerService _beerService = BeerService();
   final InstancesStatusService _statusService = InstancesStatusService();
-  final InstanceManagerService _instanceManagerService =
-      InstanceManagerService();
+  final InstanceManagerService _instanceManagerService = InstanceManagerService();
 
   int _counter = 0;
   String? _loggedUser;
 
   bool _giteaActive = false;
+  bool _giteaUpdating = false;
   String _giteaStatusMessage = "Fetching gitea status...";
 
   bool _runnerActive = false;
+  bool _runnerUpdating = false;
   String _runnerStatusMessage = "Fetching runner status...";
-
-  final List<Map<String, dynamic>> _turnOnActions = [
-    {
-      "action": "create-volroot",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "available",
-        // volume id from response from the create-volroot action
-        "resource_id": "VolumeId",
-        "attempts": 3,
-        "timeout": 20,
-      },
-    },
-    {
-      "action": "create-voldata",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "available",
-        // volume id from response from the create-voldata action
-        "resource_id": "VolumeId",
-        "attempts": 3,
-        "timeout": 20,
-      },
-    },
-    {
-      "action": "atach-volroot",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "in-use",
-        // volume id from response from the atach-volroot action
-        "resource_id": "volume_id",
-        "attempts": 3,
-        "timeout": 20,
-      },
-    },
-    {
-      "action": "atach-voldata",
-      "instance": "runner",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "in-use",
-        // volume id from response from the atach-voldata action
-        "resource_id": "volume_id",
-        "attempts": 3,
-        "timeout": 20,
-      },
-    },
-    {
-      "action": "turn-on",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "running",
-        // instance id from response from turn-on action
-        "resource_id": "id",
-        "attempts": 3,
-        "timeout": 20,
-      },
-    },
-  ];
-
-  final List<Map<String, dynamic>> _turnOffActions = [
-    {
-      "action": "turn-off",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "stopped",
-        // instance id from response from turn-off action
-        "resource_id": "id",
-        "attempts": 10,
-        "timeout": 15,
-      },
-    },
-    {
-      "action": "snapshot-root",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "completed",
-        // snapshot id (id) from response from snapshot-root action
-        "resource_id": "id",
-        "attempts": 5,
-        "timeout": 15,
-      },
-    },
-    {
-      "action": "snapshot-data",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "completed",
-        // snapshot id (id) from response from snapshot-data action
-        "resource_id": "id",
-        "attempts": 5,
-        "timeout": 15,
-      },
-    },
-    {
-      "action": "detach-root",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "available",
-        // volume_id (id) from response from instances-status action
-        "resource_id": "volume_id",
-        "attempts": 5,
-        "timeout": 10,
-      },
-    },
-    {
-      "action": "detach-data",
-      "attempts": 3,
-      "timeout": 10,
-      "pass_condition": {
-        "action": "resource-status",
-        "response_value": "available",
-        // volume_id (id) from response from instances-status action
-        "resource_id": "volume_id",
-        "attempts": 5,
-        "timeout": 10,
-      },
-    },
-  ];
 
   @override
   void initState() {
@@ -234,21 +102,6 @@ class _HomeState extends State<Home> {
     }
   }
 
-  static const chayannePhrases = [
-    "\"Fuiste tanto y fuiste tan poco, así son las historias de locos\"",
-    "\"Que si nos quedara poco tiempo, si mañana acaban nuestros días, \ny si no te he dicho suficiente, que te adoro con la vida\"",
-    "\"Y tú te vas así como si nada, acortándome la vida, agachando la mirada\"",
-    "\"De lunes a domingo voy desesperado, el corazón prendido allí en el calendario, \nbuscándote y buscando como un mercenario\"",
-    "\"Si hay que ser torero poner el alma en el ruedo, no importa lo que se venga \npa' que sepas que te quiero\"",
-    "\"pa' que sepas que te quiero, Como un buen torero (ole) me juego la vida por ti\"",
-    "\"Que yo quiero ser tu alma, ser tu socio, ser tu amante, ser tu amigo, la mitad de tu destino.\"",
-    "\"En palabras simples y comunes yo te extrañó, en lenguaje terrenal mi vida eres tú\"",
-    "\"No tires piedras al vecino si de cristal es tu tejado\"",
-    "\"Y, ¿qué me has hecho? que hasta perdí la razón\"",
-    "\"Para tu tranquilidad me tienes en tus masnos, para mi debilidad la única eres tú\"",
-    "\"Tú tienes el control de lo que pienso, de lo que imagino, \ntienes todo lo que quiero, lo que necesito.\""
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -300,66 +153,105 @@ class _HomeState extends State<Home> {
           ),
           SwitchListTile(
             value: _giteaActive,
-            title: const Text('Git Server'),
-            onChanged: (bool enabled) async {
-              setState(() {
-                _giteaActive = enabled;
-              });
-              if (await _instanceManagerService.actionsHandler(
-                'https://sm.andor.cloud/api/service_manager',
-                'gitea',
-                enabled ? _turnOnActions : _turnOffActions,
-                (msg) {
-                  setState(() {
-                    _giteaStatusMessage =
-                        msg; // Updates the UI when the status changes
-                  });
-                },
-              )) {
+            title: Column(
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Git Server'),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 10.0),
+                      child: SizedBox(
+                        width: 18,  // Set width
+                        height: 18, // Set height
+                        child: _giteaUpdating
+                            ? const CircularProgressIndicator(strokeWidth: 3, color: Colors.green)
+                            : const Icon(Icons.dns_outlined, size: 20),
+                      ),
+                    ),
+                    Text(_giteaStatusMessage, style: const TextStyle(fontSize: 13, color: Colors.black))
+                  ],
+                )
+              ],
+            ),
+            onChanged: _giteaUpdating
+              ? null
+              : (bool enabled) async {
                 setState(() {
-                  _giteaStatusMessage =
-                      'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stopped"}';
+                  _giteaActive = enabled;
+                  _giteaUpdating = true;
                 });
-              }
+                if (await _instanceManagerService.actionsHandler(
+                  'https://sm.andor.cloud/api/service_manager',
+                  'gitea',
+                  enabled ? turnOnActions : turnOffActions,
+                  (msg) {
+                    setState(() {
+                      _giteaStatusMessage = msg;
+                    });
+                  },
+                )) {
+                  setState(() {
+                    _giteaStatusMessage = 'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stopped"}';
+                    _giteaUpdating = false;
+                  });
+                }
             },
             activeColor: Colors.green,
           ),
-          Container(
-              padding: const EdgeInsets.only(left: 16.0, right: 16),
-              child: Text(_giteaStatusMessage,
-                  style: const TextStyle(fontSize: 14))),
-          const FormSwitch(label: 'CI/CD'),
           SwitchListTile(
             value: _runnerActive,
-            title: const Text('Runner'),
-            onChanged: (bool enabled) async {
-              setState(() {
-                _runnerActive = enabled;
-              });
-              if (await _instanceManagerService.actionsHandler(
-                'https://sm.andor.cloud/api/service_manager',
-                'runner',
-                enabled ? _turnOnActions : _turnOffActions,
-                (msg) {
+            title: Column(
+              children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Runner'),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 10.0),
+                      child: SizedBox(
+                          width: 18,  // Set width
+                          height: 18, // Set height
+                          child: _runnerUpdating
+                              ? const CircularProgressIndicator(strokeWidth: 3, color: Colors.green)
+                              : const Icon(Icons.dns_outlined, size: 20)
+                      ),
+                    ),
+                    Text(_runnerStatusMessage, style: const TextStyle(fontSize: 13, color: Colors.black))
+                  ],
+                ),
+              ],
+            ),
+            onChanged: _runnerUpdating
+              ? null
+              : (bool enabled) async {
                   setState(() {
-                    _runnerStatusMessage =
-                        msg; // Updates the UI when the status changes
-                  });
-                },
-              )) {
-                setState(() {
-                  _runnerStatusMessage =
-                      'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stopped"}';
+                  _runnerActive = enabled;
+                  _runnerUpdating = true;
                 });
-              }
-            },
+                if (await _instanceManagerService.actionsHandler(
+                  'https://sm.andor.cloud/api/service_manager',
+                  'runner',
+                  enabled ? turnOnActions : turnOffActions,
+                  (msg) {
+                    setState(() {
+                      _runnerStatusMessage =
+                          msg; // Updates the UI when the status changes
+                    });
+                  },
+                )) {
+                  setState(() {
+                    _runnerStatusMessage = 'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stopped"}';
+                    _runnerUpdating = false;
+                  });
+                }
+              },
             activeColor: Colors.green,
           ),
-          Container(
-              padding: const EdgeInsets.only(left: 16.0, right: 16),
-              child: Text(_runnerStatusMessage,
-                  style: const TextStyle(fontSize: 14))),
-          const FormSwitch(label: 'Non-prod'),
           FormSwitch(label: 'Beer recommendation', onChange: _beerProvider),
           Visibility(
             visible: beerVisible,
