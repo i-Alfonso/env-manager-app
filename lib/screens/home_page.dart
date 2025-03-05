@@ -42,6 +42,8 @@ class _HomeState extends State<Home> {
   bool _runnerUpdating = false;
   String _runnerStatusMessage = "Fetching runner status...";
 
+  bool _refreshing = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,19 +52,22 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _instanceStatus() async {
+    setState(() {
+      _refreshing = true;
+    });
     final status = await _statusService.fetchStatus();
     final String runnerInitialStatus = status['instances'].firstWhere(
         (instance) => instance["name"] == "runner-server-prod")['state'];
     final String giteaInitialStatus = status['instances'].firstWhere(
         (instance) => instance["name"] == "gitea-server-prod")['state'];
     setState(() {
-      _runnerStatusMessage =
-          'Name: runner-server-prod | Status: $runnerInitialStatus';
+      _runnerStatusMessage = 'Name: runner-server-prod | Status: $runnerInitialStatus';
       _runnerActive = runnerInitialStatus == 'running' ? true : false;
 
       _giteaActive = giteaInitialStatus == 'running' ? true : false;
-      _giteaStatusMessage =
-          'Name: gitea-server-prod | Status: $giteaInitialStatus';
+      _giteaStatusMessage = 'Name: gitea-server-prod | Status: $giteaInitialStatus';
+
+      _refreshing = false;
     });
   }
 
@@ -133,18 +138,20 @@ class _HomeState extends State<Home> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 10.0),
+                const Padding(
+                  padding: EdgeInsets.only(right: 10.0),
                   child: Text(
-                    'You have signed in: $_counter times',
-                    style: const TextStyle(fontSize: 12),
+                    'Check instance status:',
+                    style: TextStyle(fontSize: 12),
                   ),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _resetCounter,
-                  icon: const Icon(Icons.refresh, size: 14),
+                  onPressed: () => _instanceStatus(),
+                  icon: _refreshing
+                    ? const SizedBox( width: 18, height: 18,child: CircularProgressIndicator(strokeWidth: 3, color: Colors.green))
+                    : const Icon(Icons.refresh, size: 14),
                   label: const Text(
-                    'Reset',
+                    'Refresh',
                     style: TextStyle(fontSize: 12),
                   ),
                 ),
@@ -152,6 +159,7 @@ class _HomeState extends State<Home> {
             ),
           ),
           SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
             value: _giteaActive,
             title: Column(
               children: [
@@ -164,14 +172,14 @@ class _HomeState extends State<Home> {
                     Container(
                       margin: const EdgeInsets.only(right: 10.0),
                       child: SizedBox(
-                        width: 18,  // Set width
-                        height: 18, // Set height
+                        width: 18,
+                        height: 18,
                         child: _giteaUpdating
                             ? const CircularProgressIndicator(strokeWidth: 3, color: Colors.green)
                             : const Icon(Icons.dns_outlined, size: 20),
                       ),
                     ),
-                    Text(_giteaStatusMessage, style: const TextStyle(fontSize: 13, color: Colors.black))
+                    Text(_giteaStatusMessage, style: const TextStyle(fontSize: 12, color: Colors.black))
                   ],
                 )
               ],
@@ -202,6 +210,7 @@ class _HomeState extends State<Home> {
             activeColor: Colors.green,
           ),
           SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
             value: _runnerActive,
             title: Column(
               children: [
@@ -221,7 +230,7 @@ class _HomeState extends State<Home> {
                               : const Icon(Icons.dns_outlined, size: 20)
                       ),
                     ),
-                    Text(_runnerStatusMessage, style: const TextStyle(fontSize: 13, color: Colors.black))
+                    Text(_runnerStatusMessage, style: const TextStyle(fontSize: 12, color: Colors.black))
                   ],
                 ),
               ],

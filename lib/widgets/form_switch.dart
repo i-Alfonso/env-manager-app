@@ -17,6 +17,7 @@ class _SwitchState extends State<FormSwitch> {
   @override
   Widget build(BuildContext context) {
     return SwitchListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
       title: Text(widget.label),
       // This bool value toggles the switch.
       value: enabled,
