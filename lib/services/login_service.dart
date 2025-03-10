@@ -50,4 +50,10 @@ class LoginService {
     final prefs = await SharedPreferences.getInstance();
     prefs.setString('user', user);
   }
+
+  Future<String?> checkToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("token");
+    return token;
+  }
 }
