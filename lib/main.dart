@@ -1,13 +1,15 @@
-
 import 'package:flutter/material.dart';
-
-
+import 'screens/home_page.dart';
 import 'screens/login_page.dart';
 
 void main() {
   runApp(
-    const MaterialApp(
-      home: LoginPage(),
+    MaterialApp(
+      initialRoute: "/login",
+      routes: {
+        "/home": (context) => const HomePage(),
+        "/login": (context) => const LoginPage(),
+      },
     ),
   );
 }
