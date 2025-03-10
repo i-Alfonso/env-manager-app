@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/login_service.dart'; // Import the login service
-import '../utils/routes.dart'; // Import the routes file
+import '../services/login_service.dart';
 
 class LoginCard extends StatefulWidget {
   const LoginCard({super.key});
@@ -21,6 +20,20 @@ class _LoginCardState extends State<LoginCard> {
     userNameController.dispose();
     passController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _checkTokenAndRedirect();
+  }
+
+  Future<void> _checkTokenAndRedirect() async {
+    String? token = await _loginService.checkToken();
+    if (token != null) {
+      // Navigate to home page if a valid token exists
+      Navigator.of(context, rootNavigator: true).pushNamed("/home");
+    }
   }
 
   @override
@@ -68,7 +81,7 @@ class _LoginCardState extends State<LoginCard> {
                       loginError = false;
                     });
                     _loginService.setUser(userNameController.text);
-                    Navigator.of(context).push(createRoute()); // Use the imported function here
+                    Navigator.of(context, rootNavigator: true).pushNamed("/home");
                   } else {
                     setState(() {
                       loginError = true;
