@@ -18,6 +18,7 @@ class InstancesStatusService {
         "action": "instances-status"
       })
     );
+
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       Map<String, dynamic> data = jsonDecode(response.body);
@@ -25,6 +26,8 @@ class InstancesStatusService {
     } else {
       // If the server did not return a 200 OK response,
       // then throw an exception.
+      // print(jsonDecode(response.body));
+      // print(jsonDecode('${response.statusCode}'));
       throw Exception('Failed to load instance data');
     }
   }
