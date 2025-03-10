@@ -13,14 +13,14 @@ import '../utils/turn_on_actions.dart';
 import '../utils/turn_off_actions.dart';
 import '../utils/chayanne_phrases.dart';
 
-class Home extends StatefulWidget {
-  const Home({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<Home> createState() => _HomeState();
+  State<HomePage> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<HomePage> {
   bool phraseVisible = false;
   bool beerVisible = false;
   Map<String, dynamic>? filteredBeer;
@@ -77,18 +77,8 @@ class _HomeState extends State<Home> {
     setState(() {
       _loggedUser = prefs.getString("user");
       _counter =
-          (prefs.getInt('counter_${_loggedUser?.toLowerCase()}') ?? 0) + 1;
-      prefs.setInt('counter_${_loggedUser?.toLowerCase()}', _counter);
-    });
-  }
-
-  Future<void> _resetCounter() async {
-    // Load and obtain the shared preferences for this app.
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _loggedUser = prefs.getString("user");
-      _counter = 0;
-      prefs.setInt('counter_${_loggedUser?.toLowerCase()}', _counter);
+        (prefs.getInt('counter_${_loggedUser?.toLowerCase()}') ?? 0) + 1;
+        prefs.setInt('counter_${_loggedUser?.toLowerCase()}', _counter);
     });
   }
 
@@ -110,7 +100,28 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        leading: Image.asset(
+          'lib/assets/ubiqus-logo.png',
+          width: 24,
+          height: 24,
+        ),
+        title: const Text('Ubiqus Env Manager'),
+        actions: <Widget>[
+          Container(
+            margin: const EdgeInsets.only(right: 10.0),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded),
+              tooltip: 'Logout',
+              onPressed: () async {
+                final pref = await SharedPreferences.getInstance();
+                await pref.remove('token');
+                Navigator.of(context, rootNavigator: true).pushNamed("/login");
+              },
+            ),
+          )
+        ],
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -161,28 +172,9 @@ class _HomeState extends State<Home> {
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
             value: _giteaActive,
-            title: Column(
-              children: [
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Git Server'),
-                ),
-                Row(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(right: 10.0),
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: _giteaUpdating
-                            ? const CircularProgressIndicator(strokeWidth: 3, color: Colors.green)
-                            : const Icon(Icons.dns_outlined, size: 20),
-                      ),
-                    ),
-                    Text(_giteaStatusMessage, style: const TextStyle(fontSize: 12, color: Colors.black))
-                  ],
-                )
-              ],
+            title: const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Git Server'),
             ),
             onChanged: _giteaUpdating
               ? null
@@ -209,31 +201,27 @@ class _HomeState extends State<Home> {
             },
             activeColor: Colors.green,
           ),
+          Row(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: _giteaUpdating
+                      ? const CircularProgressIndicator(strokeWidth: 3, color: Colors.green)
+                      : const Icon(Icons.dns_outlined, size: 20),
+                ),
+              ),
+              Text(_giteaStatusMessage, style: const TextStyle(fontSize: 12, color: Colors.black))
+            ],
+          ),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
             value: _runnerActive,
-            title: Column(
-              children: [
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Runner'),
-                ),
-                Row(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(right: 10.0),
-                      child: SizedBox(
-                          width: 18,  // Set width
-                          height: 18, // Set height
-                          child: _runnerUpdating
-                              ? const CircularProgressIndicator(strokeWidth: 3, color: Colors.green)
-                              : const Icon(Icons.dns_outlined, size: 20)
-                      ),
-                    ),
-                    Text(_runnerStatusMessage, style: const TextStyle(fontSize: 12, color: Colors.black))
-                  ],
-                ),
-              ],
+            title: const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Runner'),
             ),
             onChanged: _runnerUpdating
               ? null
@@ -260,6 +248,21 @@ class _HomeState extends State<Home> {
                 }
               },
             activeColor: Colors.green,
+          ),
+          Row(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10.0),
+                child: SizedBox(
+                    width: 18,  // Set width
+                    height: 18, // Set height
+                    child: _runnerUpdating
+                        ? const CircularProgressIndicator(strokeWidth: 3, color: Colors.green)
+                        : const Icon(Icons.dns_outlined, size: 20)
+                ),
+              ),
+              Text(_runnerStatusMessage, style: const TextStyle(fontSize: 12, color: Colors.black))
+            ],
           ),
           FormSwitch(label: 'Beer recommendation', onChange: _beerProvider),
           Visibility(
