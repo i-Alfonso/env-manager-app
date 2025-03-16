@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 class InstancesStatusService {
-  Future<Map<String, dynamic>> fetchStatus() async {
+  Future<Map<String, dynamic>> fetchStatus(Function onError) async {
     final url = Uri.parse('https://sm.andor.cloud/api/service_manager');
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token");
@@ -25,9 +25,7 @@ class InstancesStatusService {
       return data;
     } else {
       // If the server did not return a 200 OK response,
-      // then throw an exception.
-      // print(jsonDecode(response.body));
-      // print(jsonDecode('${response.statusCode}'));
+      onError({"statusCode": response.statusCode, "body": json.decode(response.body)});
       throw Exception('Failed to load instance data');
     }
   }

@@ -44,18 +44,31 @@ class _HomeState extends State<HomePage> {
 
   bool _refreshing = false;
 
+  final ValueNotifier<Map<dynamic, dynamic>?> _responseError = ValueNotifier(null);
+
   @override
   void initState() {
     super.initState();
     _loginCounter();
     _instanceStatus();
+    _responseError.addListener(() {
+      if (_responseError.value != null) {
+        _errorResponseDialog(context, _responseError.value!);
+      }
+    });
   }
 
   Future<void> _instanceStatus() async {
     setState(() {
       _refreshing = true;
     });
-    final status = await _statusService.fetchStatus();
+    final status = await _statusService.fetchStatus(
+      (err) {
+        setState(() {
+          _responseError.value = err;
+        });
+      }
+    );
     final String runnerInitialStatus = status['instances'].firstWhere(
         (instance) => instance["name"] == "runner-server-prod")['state'];
     final String giteaInitialStatus = status['instances'].firstWhere(
@@ -95,6 +108,39 @@ class _HomeState extends State<HomePage> {
       });
       //print("Turn off API connection");
     }
+  }
+
+  Future<void> _errorResponseDialog(BuildContext context, Map<dynamic, dynamic> data) {
+    String message = data["statusCode"] == 401
+      ? "${data["body"]["message"]}. Your session needs to be restarted."
+      : "${data["body"]["message"]}.";
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Error: ${data["statusCode"].toString()}"),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              style: TextButton.styleFrom(textStyle: Theme.of(context).textTheme.labelLarge),
+              child: Text( data["statusCode"] == 401 ? 'Go to login' : "Ok"),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                if(data["statusCode"] == 401) {
+                  final pref = await SharedPreferences.getInstance();
+                  await pref.remove('token');
+                  if (context.mounted) {
+                    Navigator.of(context, rootNavigator: true).pushNamed("/login");
+                  }
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -192,6 +238,11 @@ class _HomeState extends State<HomePage> {
                       _giteaStatusMessage = msg;
                     });
                   },
+                  (err) {
+                    setState(() {
+                        _responseError.value = err;
+                      });
+                    }
                 )) {
                   setState(() {
                     _giteaStatusMessage = 'Name: gitea-server-prod | Status:  ${_giteaActive ? "running" : "stopped"}';
@@ -240,7 +291,13 @@ class _HomeState extends State<HomePage> {
                           msg; // Updates the UI when the status changes
                     });
                   },
-                )) {
+                  (err) {
+                    setState(() {
+                        _responseError.value = err;
+                      });
+                    }
+                  )
+                ) {
                   setState(() {
                     _runnerStatusMessage = 'Name: runner-server-prod | Status:  ${_runnerActive ? "running" : "stopped"}';
                     _runnerUpdating = false;
@@ -326,5 +383,11 @@ class _HomeState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _responseError.dispose();
+    super.dispose();
   }
 }

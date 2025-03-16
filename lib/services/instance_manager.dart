@@ -6,11 +6,13 @@ import '../services/instances_status.dart';
 class InstanceManagerService {
   final InstancesStatusService _statusService = InstancesStatusService();
   Future<bool> actionsHandler(
-      String url,
-      String instanceName,
-      List<Map<String, dynamic>> actions,
-      Function(String) updateStatusMessage) async {
-    final status = await _statusService.fetchStatus();
+    String url,
+    String instanceName,
+    List<Map<String, dynamic>> actions,
+    Function(String) updateStatusMessage,
+    Function onError
+  ) async {
+    final status = await _statusService.fetchStatus(onError);
     List<dynamic> instances = status['instances'];
     Map<String, dynamic> instance = instances
         .firstWhere((instance) => instance["name"].contains(instanceName));
@@ -39,7 +41,7 @@ class InstanceManagerService {
     // print(instanceVolumes);
     // print("------------------------------------------");
 
-    // Creating a copy of the actions before modify the actions based on the instamce currrent status.
+    // Creating a copy of the actions before modify the actions based on the instance current status.
     List<Map<String, dynamic>> filteredActions =
         actions.map((action) => Map<String, dynamic>.from(action)).toList();
 
@@ -79,7 +81,7 @@ class InstanceManagerService {
           updateStatusMessage('Attempt to execute ${action["action"]} action');
           //print('Attempt to execute ${action["action"]} action');
           final result = await actionResolver(
-              url, instanceName, action['action'], null, null);
+              url, instanceName, action['action'], null, null, onError);
 
           if (result["succeed"]) {
             // print("succeed result:");
@@ -127,11 +129,13 @@ class InstanceManagerService {
 
                 try {
                   final conditionResult = await actionResolver(
-                      url,
-                      instanceName,
-                      action["pass_condition"]['action'],
-                      elId,
-                      action["pass_condition"]['response_value']);
+                    url,
+                    instanceName,
+                    action["pass_condition"]['action'],
+                    elId,
+                    action["pass_condition"]['response_value'],
+                    onError
+                  );
                   // print("conditionResult:");
                   // print(conditionResult);
                   // print("------------------------------------------");
@@ -192,8 +196,14 @@ class InstanceManagerService {
     return true;
   }
 
-  Future<Map<String, dynamic>> actionResolver(String url, String instance,
-      String action, String? resourceId, String? conditionVal) async {
+  Future<Map<String, dynamic>> actionResolver(
+      String url,
+      String instance,
+      String action,
+      String? resourceId,
+      String? conditionVal,
+      Function onError
+    ) async {
     final uri = Uri.parse(url);
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("token");
@@ -215,19 +225,16 @@ class InstanceManagerService {
       body: jsonEncode(requestBody),
     );
 
-    if (response.statusCode != 200) {
-      print(response.body);
-      print(response.headers);
-      print(response.request);
+    if (response.statusCode == 200) {
+      // Parse response body
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      return {
+        "succeed": response.statusCode == 200 && (conditionVal == null || responseData["status"] == conditionVal),
+        "responseData": responseData
+      };
+    } else {
+      onError({"statusCode": response.statusCode, "body": json.decode(response.body)});
+      throw Exception('Failed to load instance data');
     }
-
-    // Parse response body
-    final Map<String, dynamic> responseData = jsonDecode(response.body);
-
-    return {
-      "succeed": response.statusCode == 200 &&
-          (conditionVal == null || responseData["status"] == conditionVal),
-      "responseData": responseData
-    };
   }
 }
