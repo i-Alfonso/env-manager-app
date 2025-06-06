@@ -12,12 +12,12 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  
 
-      - name: Set up Flutter
+      - name: Set up Flutter (beta channel)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.1'
+          channel: beta  
 
       - name: Enable Windows support
         run: flutter config --enable-windows-desktop
@@ -29,7 +29,7 @@ jobs:
         run: flutter build windows
 
       - name: Upload executable as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4  
         with:
           name: flutter-windows-build
           path: build/windows/runner/Release/
