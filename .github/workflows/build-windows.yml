@@ -2,7 +2,7 @@ name: Build Flutter for Windows
 
 on:
   push:
-    branches: [main]
+    branches: [issue/#89/app-crash]
   workflow_dispatch:
 
 jobs:
@@ -33,5 +33,3 @@ jobs:
         with:
           name: flutter-windows-build
           path: build/windows/runner/Release/
-
-          
