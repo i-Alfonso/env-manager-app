@@ -1,0 +1,35 @@
+name: Build Flutter for Windows
+
+on:
+  push:
+    branches: [issue/#89/app-crash]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Flutter App on Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.22.1"
+
+      - name: Enable Windows support
+        run: flutter config --enable-windows-desktop
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows executable
+        run: flutter build windows
+
+      - name: Upload executable as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: flutter-windows-build
+          path: build/windows/runner/Release/
